@@ -9,9 +9,10 @@ class SaveGenerator {
      * @param {number} tileWidth - tile地图宽度（像素，必须是64的倍数）
      * @param {number} tileHeight - tile地图高度（像素，必须是64的倍数）
      * @param {string[][]} tiles - tile类型二维数组 [y][x]
+     * @param {Object} statsConfig - 用户配置的统计数据
      * @returns {Object} SavedMap JSON对象
      */
-    static generateSaveData(tileWidth, tileHeight, tiles) {
+    static generateSaveData(tileWidth, tileHeight, tiles, statsConfig = {}) {
         // 验证尺寸是64的倍数
         if (tileWidth % 64 !== 0 || tileHeight % 64 !== 0) {
             throw new Error(`tile尺寸必须是64的倍数，当前尺寸：${tileWidth}×${tileHeight}`);
@@ -42,7 +43,7 @@ class SaveGenerator {
         );
 
         // 创建SavedMap对象
-        // width和height是zone的数量，不是tile的数量
+        // width和height是zone的数量（tile尺寸/64）
         const savedMap = {
             saveVersion: 10, // 使用合理的版本号
             width: zoneWidth,  // zone数量 = tile宽度 / 64
@@ -52,8 +53,10 @@ class SaveGenerator {
             camera_pos_y: 0,
             camera_zoom: 1.0,
             mapStats: {
-                population: 0,
-                deaths: 0
+                population: statsConfig.population || 0,
+                deaths: statsConfig.deaths || 0,
+                player_name: statsConfig.playerName || 'The Creator',
+                world_time: (statsConfig.worldTime || 0) * 5 * 60 // 转换为秒（月*5*60=秒，假设每月约5天）
             },
             worldLaws: {},
             tileString: null,
@@ -81,7 +84,9 @@ class SaveGenerator {
             religions: [],
             families: [],
             armies: [],
-            items: []
+            items: [],
+            // 用户自定义的统计数据
+            creaturesBorn: statsConfig.creaturesBorn || 0
         };
 
         return savedMap;
@@ -190,4 +195,3 @@ class SaveGenerator {
         return this.compressToWbox(jsonString);
     }
 }
-

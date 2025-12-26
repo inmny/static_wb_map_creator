@@ -8,6 +8,13 @@ class MapCreator {
         this.imageFile = null;
         this.excelFile = null;
         this.colorMap = null;
+        this.statsConfig = {
+            playerName: '',
+            population: 0,
+            worldTime: 0,
+            deaths: 0,
+            creaturesBorn: 0
+        };
 
         this.initializeUI();
     }
@@ -74,6 +81,40 @@ class MapCreator {
         // 处理按钮
         const processBtn = document.getElementById('processBtn');
         processBtn.addEventListener('click', () => this.process());
+
+        // 统计设置切换
+        this.initStatsCollapsible();
+    }
+
+    initStatsCollapsible() {
+        const statsContent = document.getElementById('statsContent');
+        const statsArrow = document.getElementById('statsArrow');
+        let isOpen = false;
+
+        // 统计输入监听
+        const statInputs = ['playerName', 'population', 'worldTime', 'deaths', 'creaturesBorn'];
+        statInputs.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('input', () => {
+                    const value = input.type === 'number' 
+                        ? parseInt(input.value) || 0 
+                        : input.value;
+                    this.statsConfig[this.toCamelCase(id)] = value;
+                });
+            }
+        });
+    }
+
+    toCamelCase(str) {
+        return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+    }
+
+    toggleStats() {
+        const statsContent = document.getElementById('statsContent');
+        const statsArrow = document.getElementById('statsArrow');
+        statsContent.classList.toggle('open');
+        statsArrow.classList.toggle('rotated');
     }
 
     handleImageFile(file) {
@@ -203,7 +244,8 @@ class MapCreator {
             const savedMap = SaveGenerator.generateSaveData(
                 imageData.width,  // tile宽度（像素，已确保是64的倍数）
                 imageData.height, // tile高度（像素，已确保是64的倍数）
-                imageData.tiles
+                imageData.tiles,
+                this.statsConfig  // 传递用户配置的统计数据
             );
 
             // 4. 生成.wbox文件

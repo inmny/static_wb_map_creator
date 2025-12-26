@@ -110,7 +110,7 @@
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.2);
         }
 
         .btn-primary:disabled {
@@ -167,28 +167,106 @@
             margin: 20px 0;
         }
 
-        .download-link {
-            display: none;
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .download-link a {
-            display: inline-block;
-            padding: 15px 40px;
-            background: #4caf50;
-            color: white;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 1.1em;
-            transition: all 0.3s;
-        }
-
         .download-link a:hover {
             background: #45a049;
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .stats-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 15px;
+            border: 2px solid #e8ebff;
+        }
+
+        .stats-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stats-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .stats-label {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .stats-input {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+
+        .stats-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .stats-input[type="number"] {
+            min-width: 100px;
+        }
+
+        .stats-input[type="text"] {
+            min-width: 150px;
+        }
+
+        .collapsible {
+            margin-top: 15px;
+        }
+
+        .collapsible-header {
+            cursor: pointer;
+            padding: 10px;
+            background: #f0f2ff;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .collapsible-header:hover {
+            background: #e0e8ff;
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding: 0 10px;
+        }
+
+        .collapsible-content.open {
+            max-height: 2000px;
+        }
+
+        .collapsible-arrow {
+            transition: transform 0.3s;
+        }
+
+        .collapsible-arrow.rotated {
+            transform: rotate(180deg);
         }
     </style>
 </head>
@@ -205,7 +283,7 @@
             </div>
 
             <div class="upload-area" id="excelUploadArea">
-                <label class="upload-label" for="excelInput">上传Excel表格 (可选)</label>
+                <label class="upload-label" for="excelInput">上传Excel表格（可选）</label>
                 <div class="upload-hint">如果不提供，将使用默认的 default.xlsx</div>
                 <input type="file" id="excelInput" accept=".xlsx,.xls">
                 <div class="file-info" id="excelInfo"></div>
@@ -226,6 +304,41 @@
         <div class="error" id="error"></div>
         <div class="success" id="success"></div>
         <div class="download-link" id="downloadLink"></div>
+
+        <!-- 地图统计设置 -->
+        <div class="stats-section">
+            <div class="stats-title">📊 地图统计设置（可选）</div>
+            <div class="collapsible">
+                <div class="collapsible-header" onclick="toggleStats()">
+                    <span>展开高级设置</span>
+                    <span class="collapsible-arrow" id="statsArrow">▼</span>
+                </div>
+                <div class="collapsible-content" id="statsContent">
+                    <div class="stats-grid">
+                        <div class="stats-group">
+                            <label class="stats-label" for="playerName">创造者名称</label>
+                            <input type="text" id="playerName" class="stats-input" placeholder="The Creator">
+                        </div>
+                        <div class="stats-group">
+                            <label class="stats-label" for="population">人口数量</label>
+                            <input type="number" id="population" class="stats-input" value="0" min="0">
+                        </div>
+                        <div class="stats-group">
+                            <label class="stats-label" for="worldTime">世界时间（月）</label>
+                            <input type="number" id="worldTime" class="stats-input" value="0" min="0" step="1">
+                        </div>
+                        <div class="stats-group">
+                            <label class="stats-label" for="deaths">死亡总数</label>
+                            <input type="number" id="deaths" class="stats-input" value="0" min="0">
+                        </div>
+                        <div class="stats-group">
+                            <label class="stats-label" for="creaturesBorn">生物诞生数</label>
+                            <input type="number" id="creaturesBorn" class="stats-input" value="0" min="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 第三方库 -->
@@ -233,10 +346,23 @@
     <script src="lib/pako.min.js"></script>
 
     <!-- 应用脚本 -->
+    <script>
+        // 全局函数，用于HTML中的onclick调用
+        let mapCreatorInstance = null;
+        
+        function toggleStats() {
+            if (mapCreatorInstance) {
+                mapCreatorInstance.toggleStats();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            mapCreatorInstance = new MapCreator();
+        });
+    </script>
     <script src="js/excelParser.js"></script>
     <script src="js/imageProcessor.js"></script>
     <script src="js/saveGenerator.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>
-
