@@ -115,10 +115,11 @@ class ImageProcessor {
                         });
                     }
 
+                    // 返回结果
                     resolve({
                         width: canvas.width,
                         height: canvas.height,
-                        tiles: tiles
+                        tiles: tiles.reverse()  // 反转y轴，让tiles[0]对应图片的底部（游戏世界的底部）
                     });
                 } catch (error) {
                     reject(new Error(`图片处理失败: ${error.message}`));
