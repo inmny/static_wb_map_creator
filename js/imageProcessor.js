@@ -6,10 +6,12 @@
 class ImageProcessor {
     /**
      * 从图片文件读取像素数据并转换为tile类型数组
+     * 图片尺寸会被裁剪为64的倍数（向下取整），保留原始像素值，不进行插值
      * @param {File} imageFile - 图片文件
      * @param {Map<string, string>} colorMap - 颜色到tile类型的映射
      * @param {Function} progressCallback - 进度回调函数 (current, total) => void
-     * @returns {Promise<{width: number, height: number, tiles: string[][]}>} 图片尺寸和tile类型二维数组
+     * @returns {Promise<{width: number, height: number, tiles: string[][]}>} 
+     *          width和height是tile尺寸（像素，保证是64的倍数），tiles是tile类型二维数组[y][x]
      */
     static async processImage(imageFile, colorMap, progressCallback = null) {
         return new Promise((resolve, reject) => {
@@ -19,12 +21,28 @@ class ImageProcessor {
 
             img.onload = () => {
                 try {
-                    // 设置canvas尺寸
-                    canvas.width = img.width;
-                    canvas.height = img.height;
+                    // 确保尺寸是64的倍数（向下取整，裁剪而非插值）
+                    const originalWidth = img.width;
+                    const originalHeight = img.height;
+                    const tileWidth = Math.floor(originalWidth / 64) * 64;
+                    const tileHeight = Math.floor(originalHeight / 64) * 64;
 
-                    // 绘制图片到canvas
-                    ctx.drawImage(img, 0, 0);
+                    if (tileWidth === 0 || tileHeight === 0) {
+                        throw new Error(`图片尺寸太小：${originalWidth}×${originalHeight}，至少需要64×64像素`);
+                    }
+
+                    if (tileWidth !== originalWidth || tileHeight !== originalHeight) {
+                        console.warn(`图片尺寸 ${originalWidth}×${originalHeight} 不是64的倍数，将裁剪为 ${tileWidth}×${tileHeight}`);
+                    }
+
+                    // 设置canvas尺寸为裁剪后的尺寸
+                    canvas.width = tileWidth;
+                    canvas.height = tileHeight;
+
+                    // 绘制图片到canvas（只绘制裁剪后的部分，保留原始像素值，不进行缩放）
+                    // 源图片从(0,0)开始，取tileWidth×tileHeight的区域
+                    // 绘制到canvas的(0,0)位置，尺寸保持tileWidth×tileHeight
+                    ctx.drawImage(img, 0, 0, tileWidth, tileHeight);
 
                     // 获取图片数据
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);

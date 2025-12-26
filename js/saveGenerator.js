@@ -6,16 +6,25 @@
 class SaveGenerator {
     /**
      * 生成游戏存档数据
-     * @param {number} width - 地图宽度（像素）
-     * @param {number} height - 地图高度（像素）
+     * @param {number} tileWidth - tile地图宽度（像素，必须是64的倍数）
+     * @param {number} tileHeight - tile地图高度（像素，必须是64的倍数）
      * @param {string[][]} tiles - tile类型二维数组 [y][x]
      * @returns {Object} SavedMap JSON对象
      */
-    static generateSaveData(width, height, tiles) {
+    static generateSaveData(tileWidth, tileHeight, tiles) {
+        // 验证尺寸是64的倍数
+        if (tileWidth % 64 !== 0 || tileHeight % 64 !== 0) {
+            throw new Error(`tile尺寸必须是64的倍数，当前尺寸：${tileWidth}×${tileHeight}`);
+        }
+
+        // width和height是zone的数量（tile尺寸/64）
+        const zoneWidth = tileWidth / 64;
+        const zoneHeight = tileHeight / 64;
+
         // 构建tileMap：所有唯一的tile类型字符串列表
         const tileMapSet = new Set();
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
+        for (let y = 0; y < tileHeight; y++) {
+            for (let x = 0; x < tileWidth; x++) {
                 tileMapSet.add(tiles[y][x]);
             }
         }
@@ -29,14 +38,15 @@ class SaveGenerator {
 
         // 使用RLE压缩生成tileArray和tileAmounts
         const { tileArray, tileAmounts } = this.generateRLECompressedTiles(
-            width, height, tiles, tileTypeToIndex
+            tileWidth, tileHeight, tiles, tileTypeToIndex
         );
 
         // 创建SavedMap对象
+        // width和height是zone的数量，不是tile的数量
         const savedMap = {
             saveVersion: 10, // 使用合理的版本号
-            width: width,
-            height: height,
+            width: zoneWidth,  // zone数量 = tile宽度 / 64
+            height: zoneHeight, // zone数量 = tile高度 / 64
             hotkey_tabs_data: null,
             camera_pos_x: 0,
             camera_pos_y: 0,
@@ -80,18 +90,18 @@ class SaveGenerator {
     /**
      * 使用RLE压缩生成tileArray和tileAmounts
      * 根据SavedMap.cs的create()方法实现
-     * @param {number} width - 地图宽度
-     * @param {number} height - 地图高度
+     * @param {number} tileWidth - tile地图宽度（像素）
+     * @param {number} tileHeight - tile地图高度（像素）
      * @param {string[][]} tiles - tile类型二维数组
      * @param {Map<string, number>} tileTypeToIndex - tile类型到索引的映射
      * @returns {{tileArray: number[][], tileAmounts: number[][]}} RLE压缩后的数据
      */
-    static generateRLECompressedTiles(width, height, tiles, tileTypeToIndex) {
+    static generateRLECompressedTiles(tileWidth, tileHeight, tiles, tileTypeToIndex) {
         const tileArray = [];
         const tileAmounts = [];
 
         // 按行处理
-        for (let y = 0; y < height; y++) {
+        for (let y = 0; y < tileHeight; y++) {
             const rowTileArray = [];
             const rowTileAmounts = [];
 
@@ -99,7 +109,7 @@ class SaveGenerator {
             let tileCount = 0;
 
             // 遍历该行的每个tile
-            for (let x = 0; x < width; x++) {
+            for (let x = 0; x < tileWidth; x++) {
                 const currentTileType = tiles[y][x];
 
                 if (currentTileType === lastTileType && tileCount > 0) {

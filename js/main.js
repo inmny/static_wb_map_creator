@@ -201,8 +201,8 @@ class MapCreator {
             // 3. 生成存档数据
             this.updateProgress(90);
             const savedMap = SaveGenerator.generateSaveData(
-                imageData.width,
-                imageData.height,
+                imageData.width,  // tile宽度（像素，已确保是64的倍数）
+                imageData.height, // tile高度（像素，已确保是64的倍数）
                 imageData.tiles
             );
 
@@ -214,8 +214,10 @@ class MapCreator {
             this.updateProgress(100);
             this.downloadFile(wboxData, 'map.wbox');
 
+            const zoneWidth = savedMap.width;
+            const zoneHeight = savedMap.height;
             this.showProgress(false);
-            this.showSuccess(`成功生成地图存档！图片尺寸: ${imageData.width} × ${imageData.height}`);
+            this.showSuccess(`成功生成地图存档！Tile尺寸: ${imageData.width}×${imageData.height} (${zoneWidth}×${zoneHeight} zones)`);
         } catch (error) {
             this.showProgress(false);
             this.showError(`处理失败: ${error.message}`);
