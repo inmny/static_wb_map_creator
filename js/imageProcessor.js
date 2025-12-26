@@ -69,13 +69,21 @@ class ImageProcessor {
                             // 在颜色映射表中查找
                             let tileType = colorMap.get(colorHex);
 
-                            if (!tileType) {
-                                // 如果找不到精确匹配，记录未匹配的颜色
+                            if (!tileType && toleranceLevel > 0) {
+                                // 如果找不到精确匹配且容忍度大于0，尝试查找最接近的颜色
+                                const closestColor = this.findClosestColor(colorHex, colorMap, toleranceLevel);
+                                if (closestColor) {
+                                    tileType = colorMap.get(closestColor);
+                                } else {
+                                    tileType = 'soil_low';
+                                }
+                            } else if (!tileType && toleranceLevel === 0) {
+                                // 如果找不到精确匹配且容忍度为0，记录未匹配的颜色
                                 const count = unmatchedColors.get(colorHex) || 0;
                                 unmatchedColors.set(colorHex, count + 1);
                                 
                                 // 使用默认tile类型
-                                tileType = 'soil_low'; // 默认值
+                                tileType = 'soil_low';
                             }
 
                             row.push(tileType);
@@ -146,6 +154,64 @@ class ImageProcessor {
             return hex.padStart(2, '0');
         };
         return toHex(r) + toHex(g) + toHex(b);
+    }
+
+    /**
+     * 将16进制颜色字符串转换为RGB值
+     * @param {string} hexColor - 6位16进制字符串（大写）
+     * @returns {{r: number, g: number, b: number}} RGB值对象
+     */
+    static hexToRgb(hexColor) {
+        return {
+            r: parseInt(hexColor.substring(0, 2), 16),
+            g: parseInt(hexColor.substring(2, 4), 16),
+            b: parseInt(hexColor.substring(4, 6), 16)
+        };
+    }
+
+    /**
+     * 计算两种颜色之间的欧几里得距离
+     * @param {{r: number, g: number, b: number}} color1 - 第一种颜色的RGB值
+     * @param {{r: number, g: number, b: number}} color2 - 第二种颜色的RGB值
+     * @returns {number} 欧几里得距离
+     */
+    static colorDistance(color1, color2) {
+        const dr = color1.r - color2.r;
+        const dg = color1.g - color2.g;
+        const db = color1.b - color2.b;
+        return Math.sqrt(dr * dr + dg * dg + db * db);
+    }
+
+    /**
+     * 在颜色映射表中查找最接近目标颜色的颜色
+     * @param {string} targetColor - 目标颜色（16进制）
+     * @param {Map<string, string>} colorMap - 颜色映射表
+     * @param {number} tolerance - 容忍度（0-100）
+     * @returns {string} 最接近的匹配颜色，如果没有满足容忍度的则返回null
+     */
+    static findClosestColor(targetColor, colorMap, tolerance) {
+        const targetRgb = this.hexToRgb(targetColor);
+        let closestColor = null;
+        let minDistance = Infinity;
+
+        // 遍历颜色映射表，找到最接近且满足容忍度的颜色
+        for (const mapColor of colorMap.keys()) {
+            const mapRgb = this.hexToRgb(mapColor);
+            const distance = this.colorDistance(targetRgb, mapRgb);
+            
+            // 计算容忍阈值（最大允许的RGB差值）
+            const maxDiff = Math.floor(tolerance / 100 * 765); // 765 = 255*3
+            
+            // 检查是否在容忍范围内
+            if (distance <= maxDiff) {
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestColor = mapColor;
+                }
+            }
+        }
+
+        return closestColor;
     }
 }
 

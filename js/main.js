@@ -13,7 +13,8 @@ class MapCreator {
             population: 0,
             worldTime: 0,
             deaths: 0,
-            creaturesBorn: 0
+            creaturesBorn: 0,
+            tolerance: 0  // 颜色容忍度（0-100%）
         };
 
         this.initializeUI();
@@ -92,15 +93,23 @@ class MapCreator {
         let isOpen = false;
 
         // 统计输入监听
-        const statInputs = ['playerName', 'population', 'worldTime', 'deaths', 'creaturesBorn'];
+        const statInputs = ['playerName', 'population', 'worldTime', 'deaths', 'creaturesBorn', 'tolerance'];
         statInputs.forEach(id => {
             const input = document.getElementById(id);
             if (input) {
                 input.addEventListener('input', () => {
-                    const value = input.type === 'number' 
-                        ? parseInt(input.value) || 0 
+                    const value = input.type === 'number' || input.type === 'range'
+                        ? parseInt(input.value) || 0
                         : input.value;
                     this.statsConfig[this.toCamelCase(id)] = value;
+                    
+                    // 更新容忍度显示值
+                    if (id === 'tolerance') {
+                        const displayValue = document.getElementById('toleranceValue');
+                        if (displayValue) {
+                            displayValue.textContent = `${value}%`;
+                        }
+                    }
                 });
             }
         });
@@ -229,6 +238,7 @@ class MapCreator {
                 imageData = await ImageProcessor.processImage(
                     this.imageFile,
                     this.colorMap,
+                    this.statsConfig.tolerance,  // 传递颜色容忍度
                     (current, total) => {
                         // 图片处理进度（20% - 90%）
                         const progress = 20 + (current / total) * 70;
