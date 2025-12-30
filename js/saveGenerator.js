@@ -45,7 +45,7 @@ class SaveGenerator {
         // 创建SavedMap对象
         // width和height是zone的数量（tile尺寸/64）
         const savedMap = {
-            saveVersion: 10, // 使用合理的版本号
+            saveVersion: 17, // 使用合理的版本号
             width: zoneWidth,  // zone数量 = tile宽度 / 64
             height: zoneHeight, // zone数量 = tile高度 / 64
             hotkey_tabs_data: null,
